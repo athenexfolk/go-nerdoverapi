@@ -1,12 +1,13 @@
 package main
 
 import (
-	"nerdoverapi/internal/category"
-
 	"github.com/gin-gonic/gin"
+	"nerdoverapi/db"
+	"nerdoverapi/internal/category"
 )
 
 func main() {
+	db.ConnectDatabase()
 	r := gin.Default()
 
 	api := r.Group("/api/v1")
