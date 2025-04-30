@@ -1,12 +1,12 @@
 package feature
 
 type Menu struct {
-	Name    string
-	Slug    string
-	Lessons []MenuLesson
+	Name    string       `json:"name"`
+	Slug    string       `json:"slug"`
+	Lessons []MenuLesson `json:"lessons"`
 }
 
 type MenuLesson struct {
-	Title string
-	Slug  string
+	Title string `json:"title"`
+	Slug  string `json:"slug"`
 }

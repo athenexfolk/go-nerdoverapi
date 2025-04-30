@@ -4,6 +4,7 @@ import (
 	"nerdoverapi/db"
 	"nerdoverapi/storage"
 
+	"nerdoverapi/internal/auth"
 	"nerdoverapi/internal/category"
 	"nerdoverapi/internal/feature"
 	"nerdoverapi/internal/lesson"
@@ -24,9 +25,13 @@ func main() {
 	r := gin.Default()
 
 	api := r.Group("/api/v1")
+
+	api.Use(auth.JWTAuthMiddleware())
+
 	category.RegisterRoutes(api)
 	lesson.RegisterRoutes(api)
 	feature.RegisterRoutes(api)
+	auth.RegisterRoutes(api)
 
 	r.Run()
 }
