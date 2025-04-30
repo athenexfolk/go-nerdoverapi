@@ -205,6 +205,11 @@ func UpdateContent(ctx context.Context, id string, dto UpdateContentDto) (Lesson
 		return Lesson{}, err
 	}
 
+	acl := storage.Bucket.Object(filename).ACL()
+	if err := acl.Set(ctx, gcs.AllUsers, gcs.RoleReader); err != nil {
+		return Lesson{}, err
+	}
+
 	return existingLesson, nil
 }
 

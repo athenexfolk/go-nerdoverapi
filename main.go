@@ -5,6 +5,7 @@ import (
 	"nerdoverapi/storage"
 
 	"nerdoverapi/internal/category"
+	"nerdoverapi/internal/feature"
 	"nerdoverapi/internal/lesson"
 
 	"github.com/gin-gonic/gin"
@@ -25,6 +26,7 @@ func main() {
 	api := r.Group("/api/v1")
 	category.RegisterRoutes(api)
 	lesson.RegisterRoutes(api)
+	feature.RegisterRoutes(api)
 
 	r.Run()
 }
