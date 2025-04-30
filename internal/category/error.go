@@ -1,4 +1,4 @@
-package domainerror
+package category
 
 import "errors"
 

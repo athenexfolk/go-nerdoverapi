@@ -1,10 +1,14 @@
 package main
 
 import (
+	"nerdoverapi/db"
+	"nerdoverapi/storage"
+
+	"nerdoverapi/internal/category"
+	"nerdoverapi/internal/lesson"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"nerdoverapi/db"
-	categoryRouter "nerdoverapi/internal/category/router"
 )
 
 func main() {
@@ -14,11 +18,13 @@ func main() {
 	}
 
 	db.InitFirestore()
+	storage.InitStorage()
 
 	r := gin.Default()
 
 	api := r.Group("/api/v1")
-	categoryRouter.RegisterRoutes(api)
+	category.RegisterRoutes(api)
+	lesson.RegisterRoutes(api)
 
-	r.Run("localhost:3000")
+	r.Run()
 }

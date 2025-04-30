@@ -1,4 +1,4 @@
-package service
+package category
 
 import (
 	"context"
@@ -8,32 +8,30 @@ import (
 	"google.golang.org/grpc/status"
 
 	"nerdoverapi/db"
-	"nerdoverapi/internal/category/error"
-	"nerdoverapi/internal/category/model"
 )
 
-const collectionName = "category"
+const categoryCollectionName = "category"
 
-func CreateCategory(ctx context.Context, newCategory model.Category) (model.Category, error) {
+func CreateCategory(ctx context.Context, newCategory Category) (Category, error) {
 	exists, err := CategoryExists(ctx, newCategory.Slug)
 	if err != nil {
-		return model.Category{}, err
+		return Category{}, err
 	}
 	if exists {
-		return model.Category{}, domainerror.ErrCategoryAlreadyExists
+		return Category{}, ErrCategoryAlreadyExists
 	}
 
 	if _, err := docRef(newCategory.Slug).Set(ctx, newCategory); err != nil {
-		return model.Category{}, err
+		return Category{}, err
 	}
 	return newCategory, nil
 }
 
-func GetAllCategories(ctx context.Context) ([]model.Category, error) {
-	iter := db.Client.Collection(collectionName).Documents(ctx)
+func GetAllCategories(ctx context.Context) ([]Category, error) {
+	iter := db.Client.Collection(categoryCollectionName).Documents(ctx)
 	defer iter.Stop()
 
-	var categoryList []model.Category
+	var categoryList []Category
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
@@ -43,7 +41,7 @@ func GetAllCategories(ctx context.Context) ([]model.Category, error) {
 			return nil, err
 		}
 
-		var category model.Category
+		var category Category
 		if err := doc.DataTo(&category); err != nil {
 			return nil, err
 		}
@@ -52,46 +50,46 @@ func GetAllCategories(ctx context.Context) ([]model.Category, error) {
 	return categoryList, nil
 }
 
-func GetCategoryByID(ctx context.Context, id string) (model.Category, error) {
+func GetCategoryByID(ctx context.Context, id string) (Category, error) {
 	doc, err := docRef(id).Get(ctx)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
-			return model.Category{}, domainerror.ErrCategoryNotFound
+			return Category{}, ErrCategoryNotFound
 		}
-		return model.Category{}, err
+		return Category{}, err
 	}
 
-	var category model.Category
+	var category Category
 	if err := doc.DataTo(&category); err != nil {
-		return model.Category{}, err
+		return Category{}, err
 	}
 	return category, nil
 }
 
-func UpdateCategory(ctx context.Context, id string, updatedCategory model.Category) (model.Category, error) {
+func UpdateCategory(ctx context.Context, id string, updatedCategory Category) (Category, error) {
 	exists, err := CategoryExists(ctx, id)
 	if err != nil {
-		return model.Category{}, err
+		return Category{}, err
 	}
 	if !exists {
-		return model.Category{}, domainerror.ErrCategoryNotFound
+		return Category{}, ErrCategoryNotFound
 	}
 
 	updatedCategory.Slug = id
 	if _, err := docRef(id).Set(ctx, updatedCategory); err != nil {
-		return model.Category{}, err
+		return Category{}, err
 	}
 	return updatedCategory, nil
 }
 
-func DeleteCategory(ctx context.Context, id string) (model.Category, error) {
+func DeleteCategory(ctx context.Context, id string) (Category, error) {
 	category, err := GetCategoryByID(ctx, id)
 	if err != nil {
-		return model.Category{}, err
+		return Category{}, err
 	}
 
 	if _, err := docRef(id).Delete(ctx); err != nil {
-		return model.Category{}, err
+		return Category{}, err
 	}
 	return category, nil
 }
