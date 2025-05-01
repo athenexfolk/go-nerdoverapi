@@ -48,23 +48,12 @@ func CreateLesson(ctx context.Context, dto CreateLessonDto) (Lesson, error) {
 
 	/* Stage 3 : Create MD file and upload to GCS */
 	filename := fmt.Sprintf("content/%s.%s.md", newLesson.CategorySlug, newLesson.Slug)
-
-	wc := storage.Bucket.Object(filename).NewWriter(ctx)
-	wc.ContentType = "text/markdown; charset=utf-8"
-	wc.CacheControl = "public, max-age=3600"
-	content := fmt.Appendf(nil, "# %s", newLesson.Title)
-	_, err = io.Copy(wc, bytes.NewReader(content))
-	if err != nil {
-		wc.Close()
-		return Lesson{}, err
-	}
-	if err := wc.Close(); err != nil {
+	if err := uploadContentFile(ctx, filename, fmt.Sprintf("# %s", newLesson.Title)); err != nil {
 		return Lesson{}, err
 	}
 
 	/* Stage 4 : Make file public readable */
-	acl := storage.Bucket.Object(filename).ACL()
-	if err := acl.Set(ctx, gcs.AllUsers, gcs.RoleReader); err != nil {
+	if err := makeFilePublic(ctx, filename); err != nil {
 		return Lesson{}, err
 	}
 
@@ -117,23 +106,11 @@ func GetLessonByID(ctx context.Context, id string) (Lesson, error) {
 	}
 
 	if lesson.ContentPath != "" {
-		resp, err := http.Get(lesson.ContentPath)
+		content, err := fetchContent(lesson.ContentPath)
 		if err != nil {
 			return Lesson{}, err
 		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return Lesson{}, err
-		}
-
-		content, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return Lesson{}, err
-		}
-
-		contentStr := string(content)
-		lesson.Content = &contentStr
+		lesson.Content = &content
 	}
 
 	return lesson, nil
@@ -192,21 +169,11 @@ func UpdateContent(ctx context.Context, id string, dto UpdateContentDto) (Lesson
 
 	filename := fmt.Sprintf("content/%s.%s.md", existingLesson.CategorySlug, existingLesson.Slug)
 
-	wc := storage.Bucket.Object(filename).NewWriter(ctx)
-	wc.ContentType = "text/markdown; charset=utf-8"
-	wc.CacheControl = "public, max-age=3600"
-	content := []byte(dto.Content)
-	_, err = io.Copy(wc, bytes.NewReader(content))
-	if err != nil {
-		wc.Close()
-		return Lesson{}, err
-	}
-	if err := wc.Close(); err != nil {
+	if err := uploadContentFile(ctx, filename, dto.Content); err != nil {
 		return Lesson{}, err
 	}
 
-	acl := storage.Bucket.Object(filename).ACL()
-	if err := acl.Set(ctx, gcs.AllUsers, gcs.RoleReader); err != nil {
+	if err := makeFilePublic(ctx, filename); err != nil {
 		return Lesson{}, err
 	}
 
@@ -223,4 +190,38 @@ func DeleteLesson(ctx context.Context, id string) (Lesson, error) {
 		return Lesson{}, err
 	}
 	return lesson, nil
+}
+
+func uploadContentFile(ctx context.Context, filename, content string) error {
+	wc := storage.Bucket.Object(filename).NewWriter(ctx)
+	defer wc.Close()
+
+	wc.ContentType = "text/markdown; charset=utf-8"
+	wc.CacheControl = "public, max-age=3600"
+
+	_, err := io.Copy(wc, bytes.NewReader([]byte(content)))
+	return err
+}
+
+func makeFilePublic(ctx context.Context, filename string) error {
+	acl := storage.Bucket.Object(filename).ACL()
+	return acl.Set(ctx, gcs.AllUsers, gcs.RoleReader)
+}
+
+func fetchContent(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch content: status %d", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
