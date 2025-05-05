@@ -10,14 +10,20 @@ import (
 
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		skipPaths := map[string]bool{
-			"/api/v1/auth": true,
-		}
-
-		if skipPaths[strings.TrimSuffix(c.FullPath(), "/")] {
+		if c.FullPath() == "" {
 			c.Next()
 			return
 		}
+
+		skipPaths := map[string]bool{
+			"/api/v1/auth/": true,
+		}
+
+		if skipPaths[c.FullPath()] {
+			c.Next()
+			return
+		}
+		
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.AbortWithStatus(http.StatusUnauthorized)
